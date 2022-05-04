@@ -8,15 +8,19 @@
 		<version>2.6.7</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
+
 	<groupId>com.sadatmalik</groupId>
 	<artifactId>fusion-gateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>fusion-gateway</name>
 	<description>Api Gateway for Fusion Cloud Application Suite</description>
+
 	<properties>
 		<java.version>11</java.version>
-		<spring-cloud.version>2021.0.2</spring-cloud.version>
+		<spring-cloud.version>2021.0.1</spring-cloud.version>
+		<docker.image.prefix>fusion</docker.image.prefix>
 	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -41,6 +45,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -58,6 +63,37 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<!-- This plugin is used to create a Docker image and publish it to Docker hub-->
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>dockerfile-maven-plugin</artifactId>
+				<version>1.4.13</version>
+				<configuration>
+
+					<!-- Sets the remote repository name. Here we use a predefined
+					variable called docker.image.prefix and the project.artifactId -->
+					<repository>${docker.image.prefix}/${project.artifactId}</repository>
+					<!-- Sets the repository tag with the project version -->
+					<tag>${project.version}</tag>
+
+					<buildArgs>
+						<!-- Sets the JAR file location using <buildArgs>. This value
+						is used in the Dockerfile -->
+						<JAR_FILE>target/${project.build.finalName}.jar</JAR_FILE>
+					</buildArgs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>default</id>
+						<phase>install</phase>
+						<goals>
+							<goal>build</goal>
+							<goal>push</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
