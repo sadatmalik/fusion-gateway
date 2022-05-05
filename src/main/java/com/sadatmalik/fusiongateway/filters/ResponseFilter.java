@@ -1,5 +1,8 @@
 package com.sadatmalik.fusiongateway.filters;
 
+import brave.Span;
+import brave.Tracer;
+import brave.propagation.TraceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -22,6 +25,9 @@ public class ResponseFilter {
     @Autowired
     private FilterUtils filterUtils;
 
+    @Autowired
+    private Tracer tracer;
+
     /**
      * Grabs the correlation ID that was passed in to the original HTTP request and injects it
      * into the response, logging the outgoing request URI so that you have “bookends” that show
@@ -34,12 +40,20 @@ public class ResponseFilter {
         return (exchange, chain) -> {
             return chain.filter(exchange).then(Mono.fromRunnable(() -> {
                 HttpHeaders requestHeaders = exchange.getRequest().getHeaders();
-                String correlationId = filterUtils.getCorrelationId(requestHeaders);
+                String correlationId;
+                Span span = tracer.currentSpan();
+
+                if (span != null) {
+                    TraceContext ctx = span.context();
+                    correlationId = ctx.traceIdString();
+                } else {
+                    correlationId = filterUtils.getCorrelationId(requestHeaders);
+                }
+
                 log.debug("Adding the correlation id to the outbound headers. {}",
                         correlationId);
                 exchange.getResponse().getHeaders().add(FilterUtils.CORRELATION_ID,
                         correlationId);
-
                 log.debug("Completing outgoing request for {}.",
                         exchange.getRequest().getURI());
             }));
